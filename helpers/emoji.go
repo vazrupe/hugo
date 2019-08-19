@@ -15,6 +15,8 @@ package helpers
 
 import (
 	"bytes"
+	"index/suffixarray"
+	"sort"
 	"sync"
 
 	"github.com/kyokomi/emoji"
@@ -42,42 +44,34 @@ func Emoji(key string) []byte {
 func Emojify(source []byte) []byte {
 	emojiInit.Do(initEmoji)
 
-	start := 0
-	k := bytes.Index(source[start:], emojiDelim)
+	sa := suffixarray.New(source)
 
-	for k != -1 {
+	var delimIdxs sort.IntSlice
 
-		j := start + k
+	delimIdxs = sa.Lookup(emojiDelim, -1)
+	delimIdxs.Sort()
 
-		upper := j + emojiMaxSize
+	offset := 0
+	for i := 0; i < len(delimIdxs)-1; i++ {
 
-		if upper > len(source) {
-			upper = len(source)
+		s := offset + delimIdxs[i]
+		e := offset + delimIdxs[i+1]
+		if (e - s) > emojiMaxSize {
+			continue
 		}
 
-		endEmoji := bytes.Index(source[j+1:upper], emojiDelim)
-		nextWordDelim := bytes.Index(source[j:upper], emojiWordDelim)
-
-		if endEmoji < 0 {
-			start++
-		} else if endEmoji == 0 || (nextWordDelim != -1 && nextWordDelim < endEmoji) {
-			start += endEmoji + 1
-		} else {
-			endKey := endEmoji + j + 2
-			emojiKey := source[j:endKey]
-
-			if emoji, ok := emojis[string(emojiKey)]; ok {
-				source = append(source[:j], append(emoji, source[endKey:]...)...)
-			}
-
-			start += endEmoji
+		nexWordDelim := bytes.Index(source[s:e], emojiWordDelim)
+		if nexWordDelim != -1 {
+			continue
 		}
 
-		if start >= len(source) {
-			break
-		}
+		emojiKey := source[s : e+1]
+		if emoji, ok := emojis[string(emojiKey)]; ok {
+			source = append(source[:s], append(emoji, source[e+1:]...)...)
 
-		k = bytes.Index(source[start:], emojiDelim)
+			i++
+			offset += len(emoji) - len(emojiKey)
+		}
 	}
 
 	return source
