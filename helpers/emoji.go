@@ -40,15 +40,23 @@ func Emoji(key string) []byte {
 func Emojify(source []byte) []byte {
 	emojiInit.Do(initEmoji)
 
+	offset := 0
+
 	resp := matcher.Match(source)
 	for resp.HasNext() {
 		items := resp.NextMatchItem(source)
 		for _, itr := range items {
-			loc := itr.At - itr.KLen + 1
+			loc := offset + itr.At - itr.KLen + 1
 
-			source = append(source[:loc], append(itr.Value.([]byte), source[itr.At+1:]...)...)
+			offset = offset - itr.KLen + len(itr.Value.([]byte))
+
+			prev := source[:loc]
+			next := source[loc+itr.KLen:]
+			source = append(prev, append(itr.Value.([]byte), next...)...)
+			break
 		}
 	}
+	resp.Release()
 
 	return source
 }
