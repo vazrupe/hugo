@@ -23,6 +23,8 @@ import (
 var (
 	emojiInit sync.Once
 
+	emojis = make(map[string][]byte)
+
 	matcher = cedar.NewMatcher()
 )
 
@@ -44,7 +46,7 @@ func Emojify(source []byte) []byte {
 		for _, itr := range items {
 			loc := itr.At - itr.KLen + 1
 
-			source = append(source[:loc], append(itr.Value.([]byte), source[itr.At+1:]...)...)
+			source = append(source[:loc], append(itr.Value.([]byte]), source[itr.At+1:]...)...)
 		}
 	}
 
@@ -55,6 +57,7 @@ func initEmoji() {
 	emojiMap := emoji.CodeMap()
 
 	for k, v := range emojiMap {
+		emojis[k] = []byte(v)
 		matcher.Insert([]byte(k), []byte(v))
 	}
 
