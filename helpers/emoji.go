@@ -46,7 +46,7 @@ func Emojify(source []byte) []byte {
 		for _, itr := range items {
 			loc := itr.At - itr.KLen + 1
 
-			source = append(source[:loc], append(itr.Value.([]byte]), source[itr.At+1:]...)...)
+			source = append(source[:loc], append(itr.Value.([]byte), source[itr.At+1:]...)...)
 		}
 	}
 
