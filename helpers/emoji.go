@@ -14,20 +14,16 @@
 package helpers
 
 import (
-	"bytes"
 	"sync"
 
+	cedar "github.com/iohub/ahocorasick"
 	"github.com/kyokomi/emoji"
 )
 
 var (
 	emojiInit sync.Once
 
-	emojis = make(map[string][]byte)
-
-	emojiDelim     = []byte(":")
-	emojiWordDelim = []byte(" ")
-	emojiMaxSize   int
+	matcher = cedar.NewMatcher()
 )
 
 // Emoji returns the emojy given a key, e.g. ":smile:", nil if not found.
@@ -42,42 +38,14 @@ func Emoji(key string) []byte {
 func Emojify(source []byte) []byte {
 	emojiInit.Do(initEmoji)
 
-	start := 0
-	k := bytes.Index(source[start:], emojiDelim)
+	resp := matcher.Match(source)
+	for resp.HasNext() {
+		items := resp.NextMatchItem(source)
+		for _, itr := range items {
+			loc := itr.At - itr.KLen + 1
 
-	for k != -1 {
-
-		j := start + k
-
-		upper := j + emojiMaxSize
-
-		if upper > len(source) {
-			upper = len(source)
+			source = append(source[:loc], append(itr.Value.([]byte), source[itr.At+1:]...)...)
 		}
-
-		endEmoji := bytes.Index(source[j+1:upper], emojiDelim)
-		nextWordDelim := bytes.Index(source[j:upper], emojiWordDelim)
-
-		if endEmoji < 0 {
-			start++
-		} else if endEmoji == 0 || (nextWordDelim != -1 && nextWordDelim < endEmoji) {
-			start += endEmoji + 1
-		} else {
-			endKey := endEmoji + j + 2
-			emojiKey := source[j:endKey]
-
-			if emoji, ok := emojis[string(emojiKey)]; ok {
-				source = append(source[:j], append(emoji, source[endKey:]...)...)
-			}
-
-			start += endEmoji
-		}
-
-		if start >= len(source) {
-			break
-		}
-
-		k = bytes.Index(source[start:], emojiDelim)
 	}
 
 	return source
@@ -87,11 +55,7 @@ func initEmoji() {
 	emojiMap := emoji.CodeMap()
 
 	for k, v := range emojiMap {
-		emojis[k] = []byte(v)
-
-		if len(k) > emojiMaxSize {
-			emojiMaxSize = len(k)
-		}
+		matcher.Insert([]byte(k), []byte(v))
 	}
 
 }

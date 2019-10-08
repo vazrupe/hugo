@@ -24,6 +24,7 @@ require (
 	github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95
 	github.com/google/go-cmp v0.3.1
 	github.com/gorilla/websocket v1.4.0
+	github.com/iohub/ahocorasick v0.0.0-20190713143823-b7bfd8ad9e27
 	github.com/jdkato/prose v1.1.0
 	github.com/kyokomi/emoji v2.1.0+incompatible
 	github.com/magefile/mage v1.4.0
